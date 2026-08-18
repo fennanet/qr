@@ -1,21 +1,23 @@
 # Quick Response (QR) code generator
 
-qr - (c) fenna
+## Usage: 
+> **qr [OPTIONS]**
 
-Usage: qr [OPTIONS]
+## Options:
+>  **-z, --zoom \<ZOOM>:**
+>          *how much to zoom in on each pixel **[default: 100]***
 
-Options:
-  -z, --zoom <ZOOM>
-          how much to zoom in on each pixel [default: 100]
+>  **-c, --content \<CONTENT>:**
+>          *contents of the QR code **[default: ""]***
 
-  -c, --content <CONTENT>
-          contents of the QR code [default: ""]
+>  **-o, --output \<OUTPUT>:**
+>          *output file path **[default: qr.png]***
 
-  -o, --output <OUTPUT>
-          output file path [default: qr.png]
+>  **-h, --help:**
+>          *Print help (see a summary with '-h')*
 
-  -h, --help
-          Print help (see a summary with '-h')
+>  **-V, --version:**
+>          *Print version*
 
-  -V, --version
-          Print version
+
+*(c) fenna*
