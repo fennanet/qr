@@ -2,10 +2,11 @@ use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
 use png;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+
 
 #[derive(Parser, Debug)]
-#[command(version, about("qr - (c) fenna"), long_about("qr - (c) fenna"))]
+#[command(name = "qr", version, about("qr - (c) fenna"), long_about("qr - (c) fenna"))]
 struct Args {
     ///how much to zoom in on each pixel
     #[arg(short, long, default_value = "100")]
@@ -18,6 +19,18 @@ struct Args {
     ///output file path
     #[arg(short, long, default_value = "qr.png")]
     output: String,
+
+    /// redundancy level
+    #[arg(short, long, default_value = "l")]
+    redundancy: RedundancyLevel,
+}
+
+#[derive(ValueEnum, Debug, Clone)]
+enum RedundancyLevel {
+    L,
+    M,
+    Q,
+    H,
 }
 
 fn main() {
@@ -28,10 +41,19 @@ fn main() {
         &[&0, &1, &0, &1],
     ];
     let args = Args::parse();
+
+    let bin = txt_to_bin(&args.content);
     generate_color_data_and_encode(&colors, args.zoom, &args.output);
+
+    for char in bin.split(" "){
+        println!("{}", char)
+    }
+
+    println!("{}", bin.split(" ").count() - 1);
+    println!("{}", bin)
 }
 
-fn _txt_to_bin(text: &str) -> String {
+fn txt_to_bin(text: &str) -> String {
     let mut bin = "".to_string();
     
     for character in text.to_string().clone().into_bytes() {

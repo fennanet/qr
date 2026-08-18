@@ -13,6 +13,10 @@
 >  **-o, --output \<OUTPUT>:**
 >          *output file path **[default: qr.png]***
 
+>  **-r, --redundancy \<REDUNDANCY>:**
+>          *redundancy level **[default: l]***
+
+
 >  **-h, --help:**
 >          *Print help (see a summary with '-h')*
 
