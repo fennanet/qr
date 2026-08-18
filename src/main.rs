@@ -6,17 +6,40 @@ use png;
 
 
 fn main() {
-    encode_png();
+    let colors = "bwbwbw";
+    encode_png(3, 2, generate_color_data(colors));
 
 }
 
+fn generate_color_data(colors: &str) -> Vec<u8>{
+    let mut data: Vec<u8> = Vec::new();
+    for color in colors.chars() {
+        if color == 'b' {
+            data.push(0);
+            data.push(0);
+            data.push(0);
+            data.push(255);
+        }
+        else if color == 'w' {
+            data.push(255);
+            data.push(255);
+            data.push(255);
+            data.push(255);
+        }
+        else {
+            println!("Invalid color: {}", color);
+        }
+    }
+    data
+}
 
-fn encode_png() {
+
+fn encode_png(width: u32, height: u32, data: Vec<u8>) {
     let path = Path::new(r"image.png");
     let file = File::create(path).unwrap();
     let ref mut w = BufWriter::new(file);
     
-    let mut encoder = png::Encoder::new(w, 3, 1); // Width is 2 pixels and height is 1.
+    let mut encoder = png::Encoder::new(w, width, height); // Width is 3 pixels and height is 2.
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     encoder.set_source_gamma(png::ScaledFloat::from_scaled(45455)); // 1.0 / 2.2, scaled by 100000
@@ -29,7 +52,5 @@ fn encode_png() {
     );
     encoder.set_source_chromaticities(source_chromaticities);
     let mut writer = encoder.write_header().unwrap();
-    
-    let data = [255, 0, 0, 255, 0, 0, 0, 255, 255, 0, 0, 255]; // An array containing a RGBA sequence. First pixel is red and second pixel is black.
-    writer.write_image_data(&data).unwrap(); // Save
+    writer.write_image_data(&data).unwrap();
 }
