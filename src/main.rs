@@ -6,40 +6,47 @@ use png;
 
 
 fn main() {
-    let colors = "bwbwbw";
-    encode_png(3, 2, generate_color_data(colors));
+    let _colors = "bwbwbb";
+    let colors2 = [
+        ["b", "w", "b", "w"],
+        ["w", "b", "w", "b"],
+        ["b", "w", "b", "w"],
+        ["w", "b", "w", "b"],
+    ];
+    encode_png(400, 400, generate_color_data(&colors2, 100));
 
 }
 
-fn generate_color_data(colors: &str) -> Vec<u8>{
+fn generate_color_data(colors: &[[&str; 4]; 4], zoom: u8) -> Vec<u8> {
     let mut data: Vec<u8> = Vec::new();
-    for color in colors.chars() {
-        if color == 'b' {
-            data.push(0);
-            data.push(0);
-            data.push(0);
-            data.push(255);
-        }
-        else if color == 'w' {
-            data.push(255);
-            data.push(255);
-            data.push(255);
-            data.push(255);
-        }
-        else {
-            println!("Invalid color: {}", color);
+    for row in colors.iter() {
+        for _ in 0..zoom {
+            for col in row.iter() {
+                for _ in 0..zoom {
+                    if *col == "b" {
+                        data.push(0);
+                        data.push(0);
+                        data.push(0);
+                        data.push(255);
+                    } else if *col == "w" {
+                        data.push(255);
+                        data.push(255);
+                        data.push(255);
+                        data.push(255);
+                    }
+                }
+            }
         }
     }
     data
 }
-
 
 fn encode_png(width: u32, height: u32, data: Vec<u8>) {
     let path = Path::new(r"image.png");
     let file = File::create(path).unwrap();
     let ref mut w = BufWriter::new(file);
     
-    let mut encoder = png::Encoder::new(w, width, height); // Width is 3 pixels and height is 2.
+    let mut encoder = png::Encoder::new(w, width, height);
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
     encoder.set_source_gamma(png::ScaledFloat::from_scaled(45455)); // 1.0 / 2.2, scaled by 100000
