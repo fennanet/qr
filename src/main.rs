@@ -7,17 +7,17 @@ use png;
 
 fn main() {
     let _colors = "bwbwbb";
-    let colors2 = [
-        ["b", "w", "b", "w"],
-        ["w", "b", "w", "b"],
-        ["b", "w", "b", "w"],
-        ["w", "b", "w", "b"],
+    let colors2: Vec<&[&str]> = vec![
+        &["b", "w", "b", "w"],
+        &["w", "b", "w", "b"],
+        &["b", "w", "b", "w"],
+        &["w", "b", "w", "b"],
     ];
     encode_png(400, 400, generate_color_data(&colors2, 100));
 
 }
 
-fn generate_color_data(colors: &[[&str; 4]; 4], zoom: u8) -> Vec<u8> {
+fn generate_color_data(colors: &[&[&str]], zoom: u8) -> Vec<u8> {
     let mut data: Vec<u8> = Vec::new();
     for row in colors.iter() {
         for _ in 0..zoom {
