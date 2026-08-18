@@ -2,22 +2,28 @@ use std::path::Path;
 use std::fs::File;
 use std::io::BufWriter;
 use png;
+use clap::Parser;
 
-
-
-fn main() {
-    let _colors = "bwbwbb";
-    let colors2: Vec<&[&str]> = vec![
-        &["b", "w", "b", "w"],
-        &["w", "b", "w", "b"],
-        &["b", "w", "b", "w"],
-        &["w", "b", "w", "b"],
-        &["b", "w", "b", "w"],
-    ];
-    generate_color_data_and_encode(&colors2, 100);
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    ///how much to zoom in on each pixel
+    #[arg(short, long, default_value = "100")]
+    zoom: u16,
 }
 
-fn generate_color_data_and_encode(colors: &[&[&str]], zoom: u8) {
+fn main() {
+    let colors: Vec<&[&str]> = vec![
+        &["b", "w", "b", "w"],
+        &["w", "b", "w", "b"],
+        &["b", "w", "b", "w"],
+        &["w", "b", "w", "b"],
+    ];
+    let args = Args::parse();
+    generate_color_data_and_encode(&colors, args.zoom);
+}
+
+fn generate_color_data_and_encode(colors: &[&[&str]], zoom: u16) {
     let mut data: Vec<u8> = Vec::new();
     for row in colors.iter() {
         for _ in 0..zoom {
