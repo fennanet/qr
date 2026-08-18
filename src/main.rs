@@ -12,12 +12,12 @@ fn main() {
         &["w", "b", "w", "b"],
         &["b", "w", "b", "w"],
         &["w", "b", "w", "b"],
+        &["b", "w", "b", "w"],
     ];
-    encode_png(400, 400, generate_color_data(&colors2, 100));
-
+    generate_color_data_and_encode(&colors2, 100);
 }
 
-fn generate_color_data(colors: &[&[&str]], zoom: u8) -> Vec<u8> {
+fn generate_color_data_and_encode(colors: &[&[&str]], zoom: u8) {
     let mut data: Vec<u8> = Vec::new();
     for row in colors.iter() {
         for _ in 0..zoom {
@@ -38,7 +38,12 @@ fn generate_color_data(colors: &[&[&str]], zoom: u8) -> Vec<u8> {
             }
         }
     }
-    data
+    let height = colors.iter().count() as u32 * zoom as u32;
+
+    let r0 = colors[0];
+    let width = r0.len() as u32 * zoom as u32;
+    
+    encode_png(width, height, data);
 }
 
 fn encode_png(width: u32, height: u32, data: Vec<u8>) {
