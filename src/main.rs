@@ -5,36 +5,55 @@ use png;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about("qr - (c) fenna"), long_about("qr - (c) fenna"))]
 struct Args {
     ///how much to zoom in on each pixel
     #[arg(short, long, default_value = "100")]
     zoom: u16,
+
+    ///contents of the QR code
+    #[arg(short, long, default_value = "")]
+    content: String,
+
+    ///output file path
+    #[arg(short, long, default_value = "qr.png")]
+    output: String,
 }
 
 fn main() {
-    let colors: Vec<&[&str]> = vec![
-        &["b", "w", "b", "w"],
-        &["w", "b", "w", "b"],
-        &["b", "w", "b", "w"],
-        &["w", "b", "w", "b"],
+    let colors: Vec<&[&u8]> = vec![
+        &[&1, &0, &1, &0],
+        &[&0, &1, &0, &1],
+        &[&1, &0, &1, &0],
+        &[&0, &1, &0, &1],
     ];
     let args = Args::parse();
-    generate_color_data_and_encode(&colors, args.zoom);
+    generate_color_data_and_encode(&colors, args.zoom, &args.output);
 }
 
-fn generate_color_data_and_encode(colors: &[&[&str]], zoom: u16) {
+fn _txt_to_bin(text: &str) -> String {
+    let mut bin = "".to_string();
+    
+    for character in text.to_string().clone().into_bytes() {
+        bin += &format!("0{:b} ", character);
+    }
+    bin
+}
+
+
+
+fn generate_color_data_and_encode(colors: &[&[&u8]], zoom: u16, output: &str) {
     let mut data: Vec<u8> = Vec::new();
     for row in colors.iter() {
         for _ in 0..zoom {
             for col in row.iter() {
                 for _ in 0..zoom {
-                    if *col == "b" {
+                    if **col == 1 {
                         data.push(0);
                         data.push(0);
                         data.push(0);
                         data.push(255);
-                    } else if *col == "w" {
+                    } else if **col == 0 {
                         data.push(255);
                         data.push(255);
                         data.push(255);
@@ -49,11 +68,11 @@ fn generate_color_data_and_encode(colors: &[&[&str]], zoom: u16) {
     let r0 = colors[0];
     let width = r0.len() as u32 * zoom as u32;
     
-    encode_png(width, height, data);
+    encode_png(width, height, data, output);
 }
 
-fn encode_png(width: u32, height: u32, data: Vec<u8>) {
-    let path = Path::new(r"image.png");
+fn encode_png(width: u32, height: u32, data: Vec<u8>, output: &str) {
+    let path = Path::new(output);
     let file = File::create(path).unwrap();
     let ref mut w = BufWriter::new(file);
     
