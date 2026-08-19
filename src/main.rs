@@ -97,17 +97,15 @@ pub const FINDER_PATTERN: [[u8; 7]; 7] = [
     [1, 0, 1, 1, 1, 0, 1],
     [1, 0, 1, 1, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 1, 1],
 ];
 pub const ALIGNMENT_PATTERN: [[u8; 5]; 5] = [
     [1, 1, 1, 1, 1],
     [1, 0, 0, 0, 1],
     [1, 0, 1, 0, 1],
     [1, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1],
 ];
-
-
 
 #[derive(Parser, Debug)]
 #[command(name = "qr", version, about("qr - (c) fenna"), long_about("qr - (c) fenna"))]
