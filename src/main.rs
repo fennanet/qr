@@ -166,7 +166,7 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
 
     for (row_index, row) in qr_emblem.iter().enumerate() {
         for (cell_index, cell) in row.iter().enumerate() {
-            qr[qr_size as usize - 7 as usize + row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
+            qr[row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
         }
     }
     
