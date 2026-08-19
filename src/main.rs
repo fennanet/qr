@@ -169,6 +169,15 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
             qr[row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
         }
     }
+
+    for i in 0..qr_size-16{
+        if i % 2 == 0 {
+            qr[8+i as usize][6] = 1;
+            qr[6][8+i as usize] = 1;
+        }
+    }
+
+    
     
     
     qr
