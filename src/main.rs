@@ -107,7 +107,9 @@ fn main() {
     }
     else {
         colors = generate_qr(version, redundancy_level, &args.content);
-        generate_color_data_and_encode(colors, args.zoom, &args.output);
+        generate_color_data_and_encode(&colors, args.zoom, &args.output);
+        print_to_terminal(&colors.clone());
+
     }
 
     
@@ -152,6 +154,8 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
             row.push(0);
         }
     }
+
+    //qr emblems
     for (row_index, row) in qr_emblem.iter().enumerate() {
         for (cell_index, cell) in row.iter().enumerate() {
             qr[row_index][cell_index] = *cell;
@@ -170,6 +174,7 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
         }
     }
 
+    // timing strips
     for i in 0..qr_size-16{
         if i % 2 == 0 {
             qr[8+i as usize][6] = 1;
@@ -177,14 +182,37 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
         }
     }
 
+    // black square
+    qr[qr_size as usize - 8][8] = 1;
+
     
     
     
     qr
 }
 
+fn print_to_terminal(colors: &Vec<Vec<u8>>) {
+    let mut print_row: String = "".to_string();
+    for row in colors.iter() {
+        for char in row {
+            if *char == 0 {
+                print_row += "  ";
+            }
+            else if *char == 1 {
+                print_row += "██"
+            }
+            else {
+                eprintln!("nasty character found!");
+            }
+            
+        }
+        println!("{}", print_row);
+        print_row = "".to_string();
+    }
+}
 
-fn generate_color_data_and_encode(colors: Vec<Vec<u8>>, zoom: u16, output: &str) {
+
+fn generate_color_data_and_encode(colors: &Vec<Vec<u8>>, zoom: u16, output: &str) {
     let mut data: Vec<u8> = Vec::new();
     for row in colors.iter() {
         for _ in 0..zoom {
