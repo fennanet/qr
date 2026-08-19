@@ -4,6 +4,48 @@ use std::io::BufWriter;
 use png;
 use clap::{Parser, ValueEnum};
 
+pub const ALIGNMENT_PATTERN_COORDS: &[&[u8]] = &[
+    &[6, 18],
+    &[6, 22],
+    &[6, 26],
+    &[6, 30],
+    &[6, 34],
+    &[6, 22, 38],
+    &[6, 24, 42],
+    &[6, 26, 46],
+    &[6, 28, 50],
+    &[6, 30, 54],
+    &[6, 32, 58],
+    &[6, 34, 62],
+    &[6, 26, 46, 66],
+    &[6, 26, 48, 70],
+    &[6, 26, 50, 74],
+    &[6, 30, 54, 78],
+    &[6, 30, 56, 82],
+    &[6, 30, 58, 86],
+    &[6, 34, 62, 90],
+    &[6, 28, 50, 72, 94],
+    &[6, 26, 50, 74, 98],
+    &[6, 30, 54, 78, 102],
+    &[6, 28, 54, 80, 106],
+    &[6, 32, 58, 84, 110],
+    &[6, 30, 58, 86, 114],
+    &[6, 34, 62, 90, 118],
+    &[6, 26, 50, 74, 98, 122],
+    &[6, 30, 54, 78, 102, 126],
+    &[6, 26, 52, 78, 104, 130],
+    &[6, 30, 56, 82, 108, 134],
+    &[6, 34, 60, 86, 112, 138],
+    &[6, 30, 58, 86, 114, 142],
+    &[6, 34, 62, 90, 118, 146],
+    &[6, 30, 54, 78, 102, 126, 150],
+    &[6, 24, 50, 76, 102, 128, 154],
+    &[6, 28, 54, 80, 106, 132, 158],
+    &[6, 32, 58, 84, 110, 136, 162],
+    &[6, 26, 54, 82, 110, 138, 166],
+    &[6, 30, 58, 86, 114, 142, 170],
+];
+
 pub const QR_CAPACITY: [[u16; 4]; 40] = [
     // L,    M,    Q,    H
     [17, 14, 11, 7],       // 1
@@ -46,6 +88,23 @@ pub const QR_CAPACITY: [[u16; 4]; 40] = [
     [2699, 2099, 1499, 1139],// 38
     [2809, 2213, 1579, 1219],// 39
     [2953, 2331, 1663, 1273],// 40
+];
+
+pub const FINDER_PATTERN: [[u8; 7]; 7] = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1]
+];
+pub const ALIGNMENT_PATTERN: [[u8; 5]; 5] = [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1]
 ];
 
 
@@ -99,16 +158,17 @@ fn main() {
     let version = decide_qr_version(&bin, redundancy_level);
     if version == 41 {
         if redundancy_level == 0 {
-            println!("woahh, that's a lot of bytes! i'm afraid that it won't fit on a single qr code")
+            println!("woahh, that's a lot of bytes! i'm afraid that it won't fit on to a single qr code")
         }
         else {
-            println!("woahh, that's a lot of bytes! a lower amount of redundancy might work, other wise i'm afraid it won't fit on a single qr code")
+            println!("woahh, that's a lot of bytes! a lower amount of redundancy might work, other wise i'm afraid it won't fit on to a single qr code")
         }
     }
     else {
         colors = generate_qr(version, redundancy_level, &args.content);
         generate_color_data_and_encode(&colors, args.zoom, &args.output);
         print_to_terminal(&colors.clone());
+        println!("qr code saved as image to {}", args.output)
 
     }
 
@@ -135,15 +195,7 @@ fn decide_qr_version(bin: &str, redundancy_level: u8) -> u8 {
 }
 
 fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8>> {
-    let qr_emblem: Vec<Vec<u8>> = vec![
-        vec![1, 1, 1, 1, 1, 1, 1],
-        vec![1, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 1, 1, 1, 0, 1],
-        vec![1, 0, 1, 1, 1, 0, 1],
-        vec![1, 0, 1, 1, 1, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 1],
-        vec![1, 1, 1, 1, 1, 1, 1],
-    ];
+
     let qr_size = (version + 1) * 4 + 17;
     let mut qr: Vec<Vec<u8>> = Vec::new();
     for _ in 0..qr_size {
@@ -156,29 +208,38 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
     }
 
     //qr emblems
-    for (row_index, row) in qr_emblem.iter().enumerate() {
+    for (row_index, row) in FINDER_PATTERN.iter().enumerate() {
         for (cell_index, cell) in row.iter().enumerate() {
             qr[row_index][cell_index] = *cell;
-        }
-    }
-
-    for (row_index, row) in qr_emblem.iter().enumerate() {
-        for (cell_index, cell) in row.iter().enumerate() {
             qr[qr_size as usize - 7 as usize + row_index][cell_index] = *cell;
+            qr[row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
+
         }
     }
 
-    for (row_index, row) in qr_emblem.iter().enumerate() {
-        for (cell_index, cell) in row.iter().enumerate() {
-            qr[row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
-        }
-    }
 
     // timing strips
     for i in 0..qr_size-16{
         if i % 2 == 0 {
             qr[8+i as usize][6] = 1;
             qr[6][8+i as usize] = 1;
+        }
+    }
+
+    // alignment patterns -> i add them after the timing strips because they override them :D
+    if version >= 2 {
+        for x in ALIGNMENT_PATTERN_COORDS[version as usize - 2] {
+            for y in ALIGNMENT_PATTERN_COORDS[version as usize - 2] {
+                let center_x = x + 2;
+                let center_y = y +2;
+                if !((center_x <= 9 && center_y <= 9) || (center_x <= 9 && center_y >= qr_size-9) || (center_x >= qr_size-9 && center_y <= 9)){
+                    for (row_index, row) in ALIGNMENT_PATTERN.iter().enumerate() {
+                        for (cell_index, cell) in row.iter().enumerate(){
+                            qr[*y as usize + row_index][*x as usize + cell_index] = *cell;
+                        }
+                    }
+                }
+            }
         }
     }
 
