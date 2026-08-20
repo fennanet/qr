@@ -152,7 +152,7 @@ fn main() {
         RedundancyLevel::H => 3,
     };
 
-    let bin = txt_to_bin(&args.content);
+    let mut bin = txt_to_bin(&args.content);
     let version = decide_qr_version(&bin, redundancy_level);
     if version == 41 {
         if redundancy_level == 0 {
@@ -163,6 +163,7 @@ fn main() {
         }
     }
     else {
+        bin = add_padding_etc(bin, version, redundancy_level);
         colors = generate_qr(version, redundancy_level, &bin);
         generate_color_data_and_encode(&colors, args.zoom, &args.output);
         print_to_terminal(&colors.clone());
@@ -174,10 +175,10 @@ fn main() {
 }
 
 fn txt_to_bin(text: &str) -> String {
-    let mut bin = "".to_string();
-    
-    for character in text.to_string().clone().into_bytes() {
-        bin += &format!("0{:b} ", character);
+    let mut bin = "0010 ".to_string();
+    bin += &format!("{:b} ", text.chars().count());
+    for character in text.bytes() {
+        bin += &format!("{:08b} ", character);
     }
     bin
 }
@@ -192,6 +193,29 @@ fn decide_qr_version(bin: &str, redundancy_level: u8) -> u8 {
     41
 }
 
+fn add_padding_etc(bin: String, version: u8, redundancy_level: u8) -> String {
+    let capacity_bits = QR_CAPACITY[version as usize][redundancy_level as usize] as usize * 8;
+
+    let mut data: String = bin.chars().filter(|c| *c != ' ').collect();
+
+    let terminator_len = capacity_bits.saturating_sub(data.len()).min(4);
+    data.push_str(&"0".repeat(terminator_len));
+
+    let rem = data.len() % 8;
+    if rem != 0 {
+        data.push_str(&"0".repeat(8 - rem));
+    }
+
+    const PAD_BYTES: [&str; 2] = ["11101100", "00010001"];
+    let mut i = 0;
+    while data.len() < capacity_bits {
+        data.push_str(PAD_BYTES[i % 2]);
+        i += 1;
+    }
+
+    data.truncate(capacity_bits);
+    data
+}
 fn generate_qr(version: u8, _redundancy_level: u8, data: &str) -> Vec<Vec<u8>> {
     let qr_size = (version + 1) * 4 + 17;
     let mut qr: Vec<Vec<u8>> = Vec::new();
@@ -283,50 +307,47 @@ fn generate_qr(version: u8, _redundancy_level: u8, data: &str) -> Vec<Vec<u8>> {
     mask[qr_size as usize - 8][8] = 1;
 
     print_to_terminal(&mask);
-    // put data
-    let byte_mode_indicator = [0, 0, 1, 0];
-    let mut coords = [qr_size as usize - 1, qr_size as usize - 1];
-    let mut step = 0;
-    let mut up = true;
-    for char in byte_mode_indicator {
-        qr[coords[0]][coords[1]] = char;
-        if step == 0 {
-            coords[1] -= 1;
-            step = 1;
-        }
-        else {
-            coords[1] += 1;
-            coords[0] -= 1;
-            step = 0;
-        }
-    }
     
-    for byte in data.split(" ") {
-        for char in byte.chars() {
-            qr[coords[0]][coords[1]] = char.to_digit(2).unwrap() as u8;
-            if up {
-                if step == 0 {
-                    coords[1] -= 1;
-                    step = 1;
+    // put data
+    let size = qr_size as isize;
+    let mut col: isize = size - 1;
+    let mut up = true;
+    
+    let mut bits = data
+        .split(' ')
+        .flat_map(|byte| byte.chars())
+        .map(|c| c.to_digit(2).unwrap() as u8);
+    
+    while col > 0 {
+        if col == 6 {
+            col -= 1;
+        }
+    
+        let rows: Vec<isize> = if up {
+            (0..size).rev().collect()
+        } else {
+            (0..size).collect()
+        };
+    
+        for row in rows {
+            for &c in &[col, col - 1] {
+                if c < 0 {
+                    continue;
                 }
-                else {
-                    coords[1] += 1;
-                    coords[0] -= 1;
-                    step = 0;
-                } 
-            } else {
-                if step == 0 {
-                    coords[1] -= 1;
-                    step = 1;
+                let (r, c) = (row as usize, c as usize);
+    
+                if mask[r][c] != 1 {
+                    if let Some(bit) = bits.next() {
+                        qr[r][c] = bit;
+                    } else {
+                        break;
+                    }
                 }
-                else {
-                    coords[1] += 1;
-                    coords[0] += 1;
-                    step = 0;
-                } 
-                
             }
         }
+    
+        up = !up;
+        col -= 2;
     }
     
     
