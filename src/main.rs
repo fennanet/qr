@@ -163,7 +163,7 @@ fn main() {
         }
     }
     else {
-        colors = generate_qr(version, redundancy_level, &args.content);
+        colors = generate_qr(version, redundancy_level, &bin);
         generate_color_data_and_encode(&colors, args.zoom, &args.output);
         print_to_terminal(&colors.clone());
         println!("qr code saved as image to {}", args.output)
@@ -192,35 +192,70 @@ fn decide_qr_version(bin: &str, redundancy_level: u8) -> u8 {
     41
 }
 
-fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8>> {
-
+fn generate_qr(version: u8, _redundancy_level: u8, data: &str) -> Vec<Vec<u8>> {
     let qr_size = (version + 1) * 4 + 17;
     let mut qr: Vec<Vec<u8>> = Vec::new();
+    let mut mask: Vec<Vec<u8>> = Vec::new();
     for _ in 0..qr_size {
         qr.push(Vec::new());
+        mask.push(Vec::new());
     }
     for row in qr.iter_mut() {
         for _ in 0..qr_size {
             row.push(0);
         }
     }
+    for row in mask.iter_mut() {
+        for _ in 0..qr_size {
+            row.push(0);
+        }
+    }
 
-    //qr emblems
+    //finder patterns
     for (row_index, row) in FINDER_PATTERN.iter().enumerate() {
         for (cell_index, cell) in row.iter().enumerate() {
             qr[row_index][cell_index] = *cell;
             qr[qr_size as usize - 7 as usize + row_index][cell_index] = *cell;
             qr[row_index][qr_size as usize - 7 as usize + cell_index] = *cell;
 
+            mask[row_index][cell_index] = 1;
+            mask[qr_size as usize - 7 as usize + row_index][cell_index] = 1;
+            mask[row_index][qr_size as usize - 7 as usize + cell_index] = 1;
+
         }
     }
 
+    // white space
+    for i in 0..7 {
+        mask[7 as usize][i as usize] = 1;
+        mask[7 as usize][qr_size as usize - i as usize - 1] = 1;
+        mask[qr_size as usize - 8 as usize][i as usize] = 1;
+    }
+
+    for i in 0..8 {
+        mask[i as usize][7 as usize] = 1;
+        mask[qr_size as usize - i as usize - 1][7 as usize] = 1;
+        mask[i as usize][qr_size as usize - 8 as usize] = 1;
+    }
+
+    //metadata strips
+    for i in 0..9 {
+        mask[i as usize][8 as usize] = 1;
+    }
+
+    for i in 0..8 {
+        mask[qr_size as usize - i as usize - 1][8 as usize] = 1;
+        mask[8 as usize][i as usize] = 1;
+        mask[8 as usize][qr_size as usize - i as usize - 1] = 1;
+    }
 
     // timing strips
-    for i in 0..qr_size-16{
+    for i in 0..qr_size - 16{
+        mask[8 + i as usize][6] = 1;
+        mask[6][8 + i as usize] = 1;
         if i % 2 == 0 {
-            qr[8+i as usize][6] = 1;
-            qr[6][8+i as usize] = 1;
+            qr[8 + i as usize][6] = 1;
+            qr[6][8 + i as usize] = 1;
         }
     }
 
@@ -229,11 +264,13 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
         for x in ALIGNMENT_PATTERN_COORDS[version as usize - 2] {
             for y in ALIGNMENT_PATTERN_COORDS[version as usize - 2] {
                 let center_x = x + 2;
-                let center_y = y +2;
+                let center_y = y + 2;
                 if !((center_x <= 9 && center_y <= 9) || (center_x <= 9 && center_y >= qr_size-9) || (center_x >= qr_size-9 && center_y <= 9)){
                     for (row_index, row) in ALIGNMENT_PATTERN.iter().enumerate() {
                         for (cell_index, cell) in row.iter().enumerate(){
                             qr[*y as usize + row_index][*x as usize + cell_index] = *cell;
+                            mask[*y as usize + row_index][*x as usize + cell_index] = 1;
+
                         }
                     }
                 }
@@ -243,7 +280,54 @@ fn generate_qr(version: u8, _redundancy_level: u8, _content: &str) -> Vec<Vec<u8
 
     // black square
     qr[qr_size as usize - 8][8] = 1;
+    mask[qr_size as usize - 8][8] = 1;
 
+    print_to_terminal(&mask);
+    // put data
+    let byte_mode_indicator = [0, 0, 1, 0];
+    let mut coords = [qr_size as usize - 1, qr_size as usize - 1];
+    let mut step = 0;
+    let mut up = true;
+    for char in byte_mode_indicator {
+        qr[coords[0]][coords[1]] = char;
+        if step == 0 {
+            coords[1] -= 1;
+            step = 1;
+        }
+        else {
+            coords[1] += 1;
+            coords[0] -= 1;
+            step = 0;
+        }
+    }
+    
+    for byte in data.split(" ") {
+        for char in byte.chars() {
+            qr[coords[0]][coords[1]] = char.to_digit(2).unwrap() as u8;
+            if up {
+                if step == 0 {
+                    coords[1] -= 1;
+                    step = 1;
+                }
+                else {
+                    coords[1] += 1;
+                    coords[0] -= 1;
+                    step = 0;
+                } 
+            } else {
+                if step == 0 {
+                    coords[1] -= 1;
+                    step = 1;
+                }
+                else {
+                    coords[1] += 1;
+                    coords[0] += 1;
+                    step = 0;
+                } 
+                
+            }
+        }
+    }
     
     
     
